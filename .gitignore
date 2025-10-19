@@ -1,0 +1,47 @@
+# ==================================
+# DEEP LEARNING / PYTORCH IGNORES
+# ==================================
+
+# 1. MODEL WEIGHTS AND CHECKPOINTS
+# 忽略所有训练输出的模型文件
+/checkpoints/
+*.pt
+*.pth
+*.h5
+*.onnx
+
+# 2. LOG FILES AND TENSORBOARD DATA
+# 忽略 TensorBoard 日志文件夹
+/runs/
+*.log
+
+# 3. DATASET FOLDERS (CRITICAL)
+# 您的数据集文件夹（通常体积巨大，不应该上传）
+# 根据您的配置，我们忽略 Maize 文件夹
+/Maize/
+/data/
+/dataset/
+
+# 4. PYTHON ENVIRONMENTS AND BUILD FILES
+# 忽略由 uv 创建的虚拟环境
+.venv/
+# 忽略由 conda 创建的环境（如果使用）
+.conda/
+# 忽略标准的 Python 编译和打包文件
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# 5. IDE AND EDITOR FILES
+# VS Code
+.vscode/
+# PyCharm
+.idea/
+
+# 6. OPERATING SYSTEM AND MISC FILES
+# macOS system files
+.DS_Store
+# Temporary files
+*~

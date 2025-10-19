@@ -1,0 +1,36 @@
+seed: 42
+device: "auto"
+img_size: 640
+epochs: 50
+batch_size: 2
+num_workers: 0
+lr: 2.0e-4
+weight_decay: 1.0e-4
+warmup_epochs: 2
+amp: true
+log_dir: ./runs/freqdetr_base
+
+backbone:
+  name: resnet18
+  out_channels: 256
+  pretrained: true
+  freeze_stages: 0
+
+transformer:
+  d_model: 256
+  nheads: 8
+  enc_layers: 3
+  dec_layers: 3
+  dim_feedforward: 1024
+  num_queries: 100
+  dropout: 0.1
+
+head:
+  num_classes: 1
+  bbox_loss_l1: 5.0
+  bbox_loss_giou: 2.0
+  cls_loss: "focal"     # focal 或 ce
+
+optim:
+  optimizer: "adamw"
+  scheduler: "cosine"

@@ -1,0 +1,15 @@
+root: ./Maize
+
+# Roboflow风格：每个split目录内自带注释JSON
+img_dir_train: train           # 或 images/train（按你的具体结构）
+img_dir_val: valid             # Roboflow常叫 valid
+img_dir_test: test
+
+ann_train: train/_annotations.coco.json
+ann_val: valid/_annotations.coco.json
+ann_test: test/_annotations.coco.json
+
+# 可写你的类别；不写则从COCO里读
+classes: ["objects"]
+format: "coco"
+img_size: 640
