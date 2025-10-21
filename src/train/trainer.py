@@ -224,6 +224,101 @@ def main():
         print("="*60)
 
     # dataloaders (will use DistributedSampler if dist is initialized)
+    # Normalize dataset root to absolute path to avoid cwd-related issues
+    try:
+        data_cfg["root"] = os.path.abspath(data_cfg.get("root", "."))
+    except Exception:
+        data_cfg["root"] = data_cfg.get("root", ".")
+
+    # Verify dataset paths exist and are accessible. This helps catch errors
+    # early and avoids one rank failing silently and killing the whole job.
+    def _check_dataset_paths(dc):
+        import glob
+        errs = []
+        root = dc.get("root")
+        if not os.path.exists(root):
+            errs.append(f"root path not found: {root}")
+
+        # image directories
+        for k in ["img_dir_train", "img_dir_val", "img_dir_test"]:
+            d = dc.get(k, None)
+            if d:
+                p = os.path.join(root, d)
+                if not os.path.isdir(p):
+                    errs.append(f"image dir not found for {k}: {p}")
+
+        # annotation files (if provided explicitly)
+        for kf, kd in [("ann_train", "img_dir_train"), ("ann_val", "img_dir_val"), ("ann_test", "img_dir_test")]:
+            ann = dc.get(kf, None)
+            imgdir = dc.get(kd, None)
+            if ann:
+                p = os.path.join(root, ann)
+                if not os.path.isfile(p):
+                    # also try inside the image dir
+                    tried = [p]
+                    if imgdir:
+                        alt = os.path.join(root, imgdir, os.path.basename(ann))
+                        tried.append(alt)
+                    # try common Roboflow name
+                    if imgdir:
+                        rf = os.path.join(root, imgdir, "_annotations.coco.json")
+                        tried.append(rf)
+                    found = any(os.path.isfile(x) for x in tried)
+                    if not found:
+                        errs.append(f"annotation file for {kf} not found. tried: {tried}")
+            else:
+                # if ann not provided, check whether imgdir has any .json annotations (roboflow style)
+                if imgdir:
+                    jlist = glob.glob(os.path.join(root, imgdir, "*.json"))
+                    if len(jlist) == 0:
+                        errs.append(f"no annotation JSON found under image dir {os.path.join(root, imgdir)}")
+
+        return errs
+
+    errs = _check_dataset_paths(data_cfg)
+    ok = 1 if len(errs) == 0 else 0
+
+    # If distributed, reduce across ranks to ensure consistent view and then exit all if any rank failed
+    if is_distributed:
+        try:
+            # choose device for reduction: use CUDA tensor if backend==nccl and cuda available
+            use_cuda_tensor = False
+            try:
+                bk = dist.get_backend()
+                use_cuda_tensor = (bk == "nccl") and (device.type == "cuda")
+            except Exception:
+                use_cuda_tensor = (device.type == "cuda")
+
+            red_dev = device if use_cuda_tensor else torch.device("cpu")
+            t = torch.tensor(ok, device=red_dev)
+            dist.all_reduce(t, op=dist.ReduceOp.MIN)
+            ok_global = int(t.item())
+        except Exception:
+            # fallback: assume not ok if exception occurs
+            ok_global = ok
+    else:
+        ok_global = ok
+
+    if ok_global == 0:
+        # rank 0 prints details
+        try:
+            rank = dist.get_rank() if is_distributed else 0
+        except Exception:
+            rank = 0
+        if rank == 0:
+            print("ERROR: dataset path checks failed:")
+            for e in errs:
+                print("  -", e)
+            print("Please fix your configs/dataset data paths (use absolute paths) or ensure the data is available on all nodes.")
+        # synchronize and then exit on all ranks
+        try:
+            if is_distributed:
+                dist.barrier()
+        except Exception:
+            pass
+        import sys
+        sys.exit(1)
+
     train_loader, val_loader = build_dataloaders(data_cfg, {"batch_size":cfg["batch_size"], "num_workers":cfg["num_workers"]})
 
     # model/opt
