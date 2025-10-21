@@ -1,5 +1,6 @@
 import os, cv2, torch, glob
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from pycocotools.coco import COCO
 from .transforms import build_transforms
 
@@ -144,12 +145,27 @@ def build_dataloaders(cfg_data, train_val_cfg):
         catid2contig=train_set.catid2contig
     )
 
+    # If distributed is initialized, use DistributedSampler for correct sharding
+    is_distributed = False
+    try:
+        import torch.distributed as dist
+        is_distributed = dist.is_available() and dist.is_initialized()
+    except Exception:
+        is_distributed = False
+
+    if is_distributed:
+        train_sampler = DistributedSampler(train_set, shuffle=True)
+        val_sampler = DistributedSampler(val_set, shuffle=False)
+    else:
+        train_sampler = None
+        val_sampler = None
+
     train_loader = DataLoader(
-        train_set, batch_size=train_val_cfg["batch_size"], shuffle=True,
-        num_workers=train_val_cfg["num_workers"], pin_memory=True, collate_fn=collate_fn
+        train_set, batch_size=train_val_cfg["batch_size"], shuffle=(train_sampler is None),
+        sampler=train_sampler, num_workers=train_val_cfg["num_workers"], pin_memory=True, collate_fn=collate_fn
     )
     val_loader = DataLoader(
         val_set, batch_size=max(1, train_val_cfg["batch_size"]//2), shuffle=False,
-        num_workers=train_val_cfg["num_workers"], pin_memory=True, collate_fn=collate_fn
+        sampler=val_sampler, num_workers=train_val_cfg["num_workers"], pin_memory=True, collate_fn=collate_fn
     )
     return train_loader, val_loader
