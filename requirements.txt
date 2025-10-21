@@ -8,3 +8,4 @@ einops
 numpy
 tqdm
 tensorboard
+pycocotools

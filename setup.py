@@ -16,6 +16,7 @@ setup(
         "numpy",
         "tqdm",
         "tensorboard",
+        "pycocotools",
     ],
     description="FreqDETR: baseline scaffold (Transformer-based) for corn lesion detection",
 )

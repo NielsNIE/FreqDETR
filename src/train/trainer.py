@@ -189,6 +189,40 @@ def main():
     else:
         device = get_device(cfg.get("device","auto"))
 
+    def startup_info():
+        import platform, sys
+        torch_version = torch.__version__
+        python_version = sys.version.split()[0]
+        os_name = platform.system()
+        cuda_available = torch.cuda.is_available()
+        n_gpus = torch.cuda.device_count() if cuda_available else 0
+        amp_enabled = cfg.get("amp", False) and device.type == "cuda"
+        print("="*60)
+        print("Starting training")
+        print(f"OS: {os_name}")
+        print(f"Python: {python_version}")
+        print(f"PyTorch: {torch_version}")
+        print(f"Device: {device} (type={device.type})")
+        if device.type == "cuda":
+            print(f"CUDA available: {cuda_available}, GPUs: {n_gpus}")
+            if n_gpus>0:
+                names = [torch.cuda.get_device_name(i) for i in range(min(n_gpus,8))]
+                print(f"GPU names (first {min(n_gpus,8)}): {names}")
+        print(f"Distributed: {is_distributed} (world_size={world_size if is_distributed else 1})")
+        print(f"Local rank: {local_rank}")
+        print(f"AMP enabled: {amp_enabled}")
+        print(f"Batch size (per process): {cfg.get('batch_size')}")
+        print(f"Num workers: {cfg.get('num_workers')}")
+        print(f"Epochs: {cfg.get('epochs')}  LR: {cfg.get('lr')}")
+        print(f"Train root: {data_cfg.get('root')}  Train img dir: {data_cfg.get('img_dir_train')}")
+        # model parameter count
+        try:
+            model_params = sum(p.numel() for p in model.parameters())
+            print(f"Model params: {model_params:,}")
+        except Exception:
+            pass
+        print("="*60)
+
     # dataloaders (will use DistributedSampler if dist is initialized)
     train_loader, val_loader = build_dataloaders(data_cfg, {"batch_size":cfg["batch_size"], "num_workers":cfg["num_workers"]})
 
@@ -201,6 +235,10 @@ def main():
     # Only rank 0 writes logs & checkpoints
     is_main = (not is_distributed) or (dist.get_rank() == 0)
     writer = SummaryWriter(log_dir=cfg.get("log_dir","./runs/freqdetr")) if is_main else None
+
+    # print startup info on main process
+    if is_main:
+        startup_info()
 
     best_f1, best_path = 0.0, None
     start_epoch = 1
