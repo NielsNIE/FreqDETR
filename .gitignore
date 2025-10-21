@@ -45,3 +45,45 @@ dist/
 .DS_Store
 # Temporary files
 *~
+
+# ==================================
+# COMMON PYTHON / ML IGNORES
+# ==================================
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pytest / mypy / pip cache
+.pytest_cache/
+.mypy_cache/
+pip-wheel-metadata/
+
+# Python env files
+.env
+.venv/
+env/
+venv/
+.python-version
+
+# Notebook outputs and checkpoints
+*.ipynb
+
+# Profiling / diagnostic
+profile_*/
+*.prof
+
+# MLflow / tracking
+mlruns/
+
+# Checkpoints and model artifacts
+*.ckpt
+*.model
+
+# Conda envs
+conda-meta/
+
+# npm / node artifacts (if ever present)
+node_modules/
+
+# logs
+logs/
