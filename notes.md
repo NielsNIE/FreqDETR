@@ -33,40 +33,82 @@ uv init
 uv add -r requirements.txt
 source .venv/bin/activate
 
-## 环境与部署快速指南
+## Quick start — minimal and portable
 
-1) 推荐快速创建环境（使用脚本）：
+Notes: run commands from the project root. Use absolute dataset paths on servers.
+
+1) Create / activate environment (one of):
+
+Conda (recommended):
 
 ```bash
-# 使用 conda 创建环境并安装依赖
-scripts/setup_env.sh --conda --name frepdetr
+# create and activate (example)
+# scripts/setup_env.sh --conda --name frepdetr
+conda activate frepdetr
+pip install -r requirements.txt
+```
 
-# 或使用 venv
-scripts/setup_env.sh --venv --venv-path .venv
+venv:
+
+```bash
+# create and activate
+# scripts/setup_env.sh --venv --venv-path .venv
 source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-2) 数据路径建议
-- 请在 `configs/dataset/data.yaml` 中使用绝对路径（例如 `/data/datasets/Maize`），或确保在启动时当前工作目录为项目根。
-- 本项目在启动时会检查数据路径并在任何 rank 上不可见时优雅退出。
-
-3) 常见问题
-- 如果出现 `FileNotFoundError`，请先运行：
-    ```bash
-    ls -l /absolute/path/to/Maize/train/_annotations.coco.json
-    ```
-- 如果 `pycocotools` 安装失败（尤其在 macOS），请尝试：
-    ```bash
-    xcode-select --install
-    pip install cython
-    pip install pycocotools-binary
-    ```
-
-4) 在服务器上以 torchrun 启动（示例）
+2) Single-GPU / debug (local)
 
 ```bash
-# 推荐：使用 launcher 来避免相对导入问题
-torchrun --nproc_per_node=4 python run_trainer.py \
-        --config configs/model/freqdetr_base.yaml \
-        --data /absolute/path/to/Maize/data.yaml
+python -m src.train.trainer \
+  --config configs/model/freqdetr_base.yaml \
+  --data configs/dataset/data.yaml
 ```
+
+3) Multi-GPU (server) — use torchrun (PyTorch >=1.10)
+
+```bash
+torchrun --nproc_per_node=NUM python run_trainer.py \
+  --config configs/model/freqdetr_base.yaml \
+  --data /absolute/path/to/Maize/data.yaml
+```
+
+Replace NUM with your GPU count. Prefer absolute paths for `--data` on multi-node setups.
+
+4) Resume from checkpoint
+
+```bash
+# add --resume with a saved checkpoint
+python -m src.train.trainer \
+  --config configs/model/freqdetr_base.yaml \
+  --data configs/dataset/data.yaml \
+  --resume ./checkpoints/freqdetr_best.pt
+```
+
+5) Common troubleshooting
+
+- If you see FileNotFoundError for annotations, verify the COCO file exists:
+
+```bash
+ls -l /absolute/path/to/Maize/train/_annotations.coco.json
+```
+
+- On macOS, if `pycocotools` fails to build:
+
+```bash
+xcode-select --install
+pip install cython
+pip install pycocotools-binary
+```
+
+- On servers: ensure CUDA + drivers and NCCL are configured and `torch` matches your CUDA version.
+
+6) Small git / workflow notes
+
+Use normal git flow for checkpoints/versions (example):
+
+```bash
+git add . && git commit -m "train: <notes>" && git push
+```
+
+That's it — this file contains only the minimal, repeatable run commands. For more details see `README.md` or the configs under `configs/`.

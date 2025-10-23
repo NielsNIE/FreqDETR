@@ -162,12 +162,15 @@ def evaluate(model, loader, device):
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--config", type=str, required=True)
-    ap.add_argument("--data", type=str, default="configs/dataset/corn_local.yaml")
+    ap = argparse.ArgumentParser(description="FreqDETR training entrypoint")
+    ap.add_argument("--config", type=str, required=True,
+                    help="Path to the model config YAML (e.g. configs/model/freqdetr_base.yaml)")
+    ap.add_argument("--data", type=str, default="configs/dataset/corn_local.yaml",
+                    help="Path to dataset/data YAML describing dataset root and annotation paths")
     # torchrun will set LOCAL_RANK and WORLD_SIZE environment variables
-    ap.add_argument("--local_rank", type=int, default=int(os.environ.get("LOCAL_RANK", 0)))
-    ap.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from")
+    ap.add_argument("--local_rank", type=int, default=int(os.environ.get("LOCAL_RANK", 0)),
+                    help="Local rank for distributed training. Set automatically by torchrun.")
+    ap.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from (optional)")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(open(args.config, "r"))
