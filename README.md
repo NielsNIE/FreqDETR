@@ -4,16 +4,12 @@ This repository contains an object detection training implementation. Below are 
 
 1) Create / activate an environment (conda or venv) and install deps:
 
-```bash
-# Conda (recommended):
-# scripts/setup_env.sh --conda --name frepdetr
-conda activate frepdetr
-pip install -r requirements.txt
-
-# Or venv:
-# scripts/setup_env.sh --venv --venv-path .venv
+# venv:
+```
+pip install uv
+uv venv
 source .venv/bin/activate
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 2) Single-GPU / debug (run from project root):
@@ -27,9 +23,9 @@ python -m src.train.trainer \
 3) Multi-GPU (server) with torchrun:
 
 ```bash
-torchrun --nproc_per_node=NUM python run_trainer.py \
+!torchrun --nproc_per_node=2 run_trainer.py \
 	--config configs/model/freqdetr_base.yaml \
-	--data /absolute/path/to/Maize/data.yaml
+	--data configs/dataset/data.yaml
 ```
 
 4) Resume training:

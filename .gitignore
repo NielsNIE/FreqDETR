@@ -15,13 +15,6 @@
 /runs/
 *.log
 
-# 3. DATASET FOLDERS (CRITICAL)
-# 您的数据集文件夹（通常体积巨大，不应该上传）
-# 根据您的配置，我们忽略 Maize 文件夹
-/Maize/
-/data/
-/dataset/
-
 # 4. PYTHON ENVIRONMENTS AND BUILD FILES
 # 忽略由 uv 创建的虚拟环境
 .venv/
